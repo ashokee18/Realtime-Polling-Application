@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poll - PollRooms</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #e94560;
+            --accent-light: #ff6b82;
+            --text: #f8f9fa;
+            --text-muted: #adb5bd;
+            --success: #06d6a0;
+            --background: #0f0f1e;
+            --card-bg: #1e1e3f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: linear-gradient(135deg, var(--background) 0%, var(--primary) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(233, 69, 96, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: moveBackground 20s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes moveBackground {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .poll-question {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            line-height: 1.3;
+            color: var(--text);
+        }
+
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(6, 214, 160, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2rem;
+            color: var(--success);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+
+        .options-container {
+            margin-top: 2rem;
+        }
+
+        .option {
+            background: var(--secondary);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option:not(.voted):hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+            box-shadow: 0 8px 24px rgba(233, 69, 96, 0.2);
+        }
+
+        .option.voted {
+            cursor: default;
+        }
+
+        .option-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .option-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .option-stats {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .vote-count {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .percentage {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .option-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(233, 69, 96, 0.2) 0%, rgba(233, 69, 96, 0.05) 100%);
+            transition: width 0.6s ease-out;
+            z-index: 1;
+            border-radius: 10px;
+        }
+
+        .option.leading .option-bar {
+            background: linear-gradient(90deg, rgba(233, 69, 96, 0.3) 0%, rgba(233, 69, 96, 0.1) 100%);
+        }
+
+        .option.leading {
+            border-color: var(--accent);
+        }
+
+        .total-votes {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .total-votes strong {
+            color: var(--text);
+            font-size: 1.5rem;
+        }
+
+        .message {
+            background: rgba(6, 214, 160, 0.1);
+            border: 2px solid var(--success);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: var(--success);
+            font-weight: 600;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .error-message {
+            background: rgba(233, 69, 96, 0.1);
+            border: 2px solid var(--accent);
+            color: var(--accent-light);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Work Sans', sans-serif;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white;
+            box-shadow: 0 8px 24px rgba(233, 69, 96, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(233, 69, 96, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                padding: 2rem 1.5rem;
+            }
+
+            .poll-question {
+                font-size: 1.75rem;
+            }
+
+            .option {
+                padding: 1.25rem;
+            }
+
+            .option-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .option-stats {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="logo">PollRooms</a>
+        </header>
+
+        <div class="card">
+            <div id="loadingState" class="loading">Loading poll...</div>
+            
+            <div id="pollContent" style="display: none;">
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    Live Results
+                </div>
+
+                <h1 class="poll-question" id="pollQuestion"></h1>
+
+                <div id="messageContainer"></div>
+
+                <div class="options-container" id="optionsContainer"></div>
+
+                <div class="total-votes" id="totalVotes"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pollId = window.location.pathname.split('/').pop();
+        const socket = io();
+        let hasVoted = false;
+        let pollData = null;
+
+        // Load poll data
+        async function loadPoll() {
+            try {
+                const response = await fetch(`/api/polls/${pollId}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    showError('Poll not found');
+                    return;
+                }
+
+                pollData = data;
+                hasVoted = data.hasVoted;
+                
+                document.getElementById('pollQuestion').textContent = data.poll.question;
+                renderOptions(data.options);
+                
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('pollContent').style.display = 'block';
+
+                if (hasVoted) {
+                    showMessage('You have already voted in this poll', 'success');
+                }
+            } catch (error) {
+                console.error('Error loading poll:', error);
+                showError('Failed to load poll');
+            }
+        }
+
+        function renderOptions(options) {
+            const container = document.getElementById('optionsContainer');
+            const totalVotes = options.reduce((sum, opt) => sum + opt.vote_count, 0);
+            const maxVotes = Math.max(...options.map(opt => opt.vote_count));
+
+            container.innerHTML = options.map(option => {
+                const percentage = totalVotes > 0 ? Math.round((option.vote_count / totalVotes) * 100) : 0;
+                const isLeading = option.vote_count === maxVotes && maxVotes > 0;
+                
+                return `
+                    <div class="option ${hasVoted ? 'voted' : ''} ${isLeading ? 'leading' : ''}" 
+                         data-option-id="${option.id}"
+                         onclick="${hasVoted ? '' : `vote(${option.id})`}">
+                        <div class="option-bar" style="width: ${percentage}%"></div>
+                        <div class="option-content">
+                            <span class="option-text">${option.option_text}</span>
+                            <div class="option-stats">
+                                <span class="vote-count">${option.vote_count} ${option.vote_count === 1 ? 'vote' : 'votes'}</span>
+                                <span class="percentage">${percentage}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('totalVotes').innerHTML = `
+                Total Votes: <strong>${totalVotes}</strong>
+            `;
+        }
+
+        async function vote(optionId) {
+            if (hasVoted) return;
+
+            try {
+                const response = await fetch(`/api/polls/${pollId}/vote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ optionId })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                hasVoted = true;
+                renderOptions(data.options);
+                showMessage('Vote recorded! Results will update in real-time.', 'success');
+            } catch (error) {
+                console.error('Error voting:', error);
+                showError('Failed to submit vote. Please try again.');
+            }
+        }
+
+        function showMessage(text, type = 'success') {
+            const container = document.getElementById('messageContainer');
+            const messageClass = type === 'error' ? 'message error-message show' : 'message show';
+            container.innerHTML = `<div class="${messageClass}">${text}</div>`;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        function showError(text) {
+            showMessage(text, 'error');
+        }
+
+        // Socket.io real-time updates
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            socket.emit('join-poll', pollId);
+        });
+
+        socket.on('vote-update', (data) => {
+            console.log('Received vote update:', data);
+            renderOptions(data.options);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        // Load poll on page load
+        loadPoll();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            socket.emit('leave-poll', pollId);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PollRooms - Real-time Polling</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #e94560;
+            --accent-light: #ff6b82;
+            --text: #f8f9fa;
+            --text-muted: #adb5bd;
+            --success: #06d6a0;
+            --background: #0f0f1e;
+            --card-bg: #1e1e3f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: linear-gradient(135deg, var(--background) 0%, var(--primary) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(233, 69, 96, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: moveBackground 20s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes moveBackground {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: var(--secondary);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 1rem;
+            font-family: 'Work Sans', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(233, 69, 96, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .options-list {
+            margin-top: 1rem;
+        }
+
+        .option-item {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            align-items: center;
+            animation: slideInRight 0.4s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .option-item input {
+            flex: 1;
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Work Sans', sans-serif;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white;
+            box-shadow: 0 8px 24px rgba(233, 69, 96, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            border-color: var(--accent);
+        }
+
+        .btn-remove {
+            background: transparent;
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            font-size: 1.25rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-remove:hover {
+            background: rgba(233, 69, 96, 0.1);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-add {
+            width: 100%;
+            margin-top: 0.75rem;
+        }
+
+        .btn-create {
+            width: 100%;
+            margin-top: 2rem;
+            padding: 1.25rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        .success-message {
+            display: none;
+            background: linear-gradient(135deg, rgba(6, 214, 160, 0.2) 0%, rgba(6, 214, 160, 0.1) 100%);
+            border: 2px solid var(--success);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .success-message h3 {
+            color: var(--success);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .share-link {
+            background: var(--secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.95rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .button-group .btn {
+            flex: 1;
+        }
+
+        .error-message {
+            background: rgba(233, 69, 96, 0.1);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            color: var(--accent-light);
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PollRooms</h1>
+            <p class="subtitle">Create instant polls with real-time results</p>
+        </header>
+
+        <div class="card">
+            <form id="pollForm">
+                <div class="form-group">
+                    <label for="question">Poll Question</label>
+                    <input type="text" id="question" placeholder="What's your question?" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Options</label>
+                    <div class="options-list" id="optionsList">
+                        <div class="option-item">
+                            <input type="text" class="option-input" placeholder="Option 1" required>
+                            <button type="button" class="btn btn-remove" onclick="removeOption(this)">×</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="text" class="option-input" placeholder="Option 2" required>
+                            <button type="button" class="btn btn-remove" onclick="removeOption(this)">×</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-add" onclick="addOption()">+ Add Option</button>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-create">Create Poll</button>
+            </form>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="success-message" id="successMessage">
+                <h3>✓ Poll Created Successfully!</h3>
+                <p>Share this link with others to collect votes:</p>
+                <div class="share-link" id="shareLink"></div>
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="copyLink()">Copy Link</button>
+                    <button class="btn btn-primary" onclick="goToPoll()">View Poll</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pollUrl = '';
+
+        function addOption() {
+            const optionsList = document.getElementById('optionsList');
+            const optionCount = optionsList.children.length + 1;
+            const optionItem = document.createElement('div');
+            optionItem.className = 'option-item';
+            optionItem.innerHTML = `
+                <input type="text" class="option-input" placeholder="Option ${optionCount}" required>
+                <button type="button" class="btn btn-remove" onclick="removeOption(this)">×</button>
+            `;
+            optionsList.appendChild(optionItem);
+        }
+
+        function removeOption(button) {
+            const optionsList = document.getElementById('optionsList');
+            if (optionsList.children.length > 2) {
+                button.parentElement.remove();
+            } else {
+                showError('You must have at least 2 options');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        function copyLink() {
+            const link = document.getElementById('shareLink').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('Link copied to clipboard!');
+            });
+        }
+
+        function goToPoll() {
+            window.location.href = pollUrl;
+        }
+
+        document.getElementById('pollForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const question = document.getElementById('question').value;
+            const optionInputs = document.querySelectorAll('.option-input');
+            const options = Array.from(optionInputs)
+                .map(input => input.value.trim())
+                .filter(val => val !== '');
+
+            if (options.length < 2) {
+                showError('Please provide at least 2 options');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/polls', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question, options })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    pollUrl = data.shareUrl;
+                    document.getElementById('shareLink').textContent = data.shareUrl;
+                    document.getElementById('successMessage').classList.add('show');
+                    document.getElementById('pollForm').style.display = 'none';
+                } else {
+                    showError(data.error || 'Failed to create poll');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to create poll. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>
