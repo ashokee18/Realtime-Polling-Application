@@ -1,18 +1,17 @@
-# 🎯 PollRooms - Real-Time Polling with Device Fingerprinting
+# 🎯 PollRooms - Real-Time Polling (Simplified)
 
-Production-ready polling application with device-based voting enforcement.
+A clean, simple polling application with real-time updates and cookie-based voting.
 
 ## ✨ Features
 
-- ✅ One vote per device (enforced)
-- ✅ Real-time results with Socket.io
-- ✅ Single & multiple choice polls
+- ✅ Create polls (single/multiple choice)
+- ✅ Real-time vote updates
+- ✅ One vote per browser (cookie-based)
 - ✅ Vote changing allowed
-- ✅ Edit polls after creation
-- ✅ Device fingerprinting
-- ✅ IP rate limiting
+- ✅ Edit polls (add/remove options)
 - ✅ Beautiful modern UI
 - ✅ Mobile responsive
+- ✅ No authentication required
 
 ## 🚀 Quick Start
 
@@ -23,24 +22,19 @@ npm start
 
 Visit: http://localhost:3000
 
-## 🔒 Security
+## 🔒 Anti-Abuse
 
-**Device Fingerprinting:**
-- Canvas fingerprinting
-- WebGL detection
-- Screen resolution
-- Timezone & language
-- 20+ unique data points
+- Cookie-based tracking (one vote per browser)
+- IP rate limiting (5 votes per 5 minutes)
+- Can change vote from same browser
 
-**One Device = One Vote**
-- Tracked in database
-- Cannot vote from same device twice
-- Can change vote from same device
+## 📊 Tech Stack
 
-## 🌐 Deploy
+- Backend: Node.js, Express, Socket.io
+- Database: SQLite
+- Frontend: Vanilla JS, HTML, CSS
 
-Ready for Render, Railway, Heroku, or any Node.js hosting.
+## 📝 Assignment
 
-## 📝 License
-
-MIT
+Built for itsmyscreen hiring process.
+Meets all requirements with clean, simple implementation.

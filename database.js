@@ -27,16 +27,14 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     poll_id TEXT NOT NULL,
     option_id INTEGER NOT NULL,
-    device_fingerprint TEXT NOT NULL,
+    voter_id TEXT NOT NULL,
     ip_address TEXT NOT NULL,
-    user_agent TEXT,
     voted_at INTEGER NOT NULL,
     FOREIGN KEY (poll_id) REFERENCES polls(id),
     FOREIGN KEY (option_id) REFERENCES poll_options(id)
   );
 
-  CREATE INDEX IF NOT EXISTS idx_votes_device ON votes(device_fingerprint, poll_id);
-  CREATE INDEX IF NOT EXISTS idx_votes_poll ON votes(poll_id);
+  CREATE INDEX IF NOT EXISTS idx_votes_voter ON votes(voter_id, poll_id);
   CREATE INDEX IF NOT EXISTS idx_votes_ip ON votes(ip_address, poll_id, voted_at);
 `);
 
@@ -49,8 +47,6 @@ const statements = {
   `),
   
   getPoll: db.prepare('SELECT * FROM polls WHERE id = ?'),
-  
-  updatePollQuestion: db.prepare('UPDATE polls SET question = ? WHERE id = ?'),
   
   // Option operations
   createOption: db.prepare(`
@@ -76,26 +72,26 @@ const statements = {
   
   // Vote operations
   recordVote: db.prepare(`
-    INSERT INTO votes (poll_id, option_id, device_fingerprint, ip_address, user_agent, voted_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO votes (poll_id, option_id, voter_id, ip_address, voted_at)
+    VALUES (?, ?, ?, ?, ?)
   `),
   
-  // Check if device has voted
-  hasDeviceVoted: db.prepare(`
+  // Check if voter has voted
+  hasVoterVoted: db.prepare(`
     SELECT COUNT(*) as count FROM votes 
-    WHERE poll_id = ? AND device_fingerprint = ?
+    WHERE poll_id = ? AND voter_id = ?
   `),
   
-  // Get device's votes for a poll
-  getDeviceVotes: db.prepare(`
+  // Get voter's votes for a poll
+  getVoterVotes: db.prepare(`
     SELECT option_id FROM votes 
-    WHERE poll_id = ? AND device_fingerprint = ?
+    WHERE poll_id = ? AND voter_id = ?
   `),
   
-  // Remove all votes from a device for a poll
-  removeDeviceVotes: db.prepare(`
+  // Remove all votes from a voter for a poll
+  removeVoterVotes: db.prepare(`
     DELETE FROM votes 
-    WHERE poll_id = ? AND device_fingerprint = ?
+    WHERE poll_id = ? AND voter_id = ?
   `),
   
   // Check recent votes from IP (rate limiting)
@@ -107,7 +103,7 @@ const statements = {
   // Get vote statistics
   getPollStats: db.prepare(`
     SELECT 
-      COUNT(DISTINCT device_fingerprint) as unique_devices,
+      COUNT(DISTINCT voter_id) as unique_voters,
       COUNT(*) as total_votes
     FROM votes
     WHERE poll_id = ?

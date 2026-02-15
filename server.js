@@ -31,16 +31,26 @@ function getClientIP(req) {
          'unknown';
 }
 
-// Anti-abuse checks with device fingerprinting
-function canVote(pollId, deviceFingerprint, ipAddress, isChangingVote = false) {
-  // Check 1: Has this device already voted?
+// Helper function to get or create voter ID
+function getVoterID(req, res) {
+  let voterId = req.cookies.voter_id;
+  if (!voterId) {
+    voterId = uuidv4();
+    res.cookie('voter_id', voterId, { 
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+      httpOnly: true 
+    });
+  }
+  return voterId;
+}
+
+// Anti-abuse checks
+function canVote(pollId, voterId, ipAddress, isChangingVote = false) {
+  // Check 1: Has this voter already voted?
   if (!isChangingVote) {
-    const deviceVoteCheck = statements.hasDeviceVoted.get(pollId, deviceFingerprint);
-    if (deviceVoteCheck.count > 0) {
-      return { 
-        allowed: false, 
-        reason: 'This device has already voted in this poll. Click "Change My Vote" to update your vote.' 
-      };
+    const voterCheck = statements.hasVoterVoted.get(pollId, voterId);
+    if (voterCheck.count > 0) {
+      return { allowed: false, reason: 'You have already voted in this poll. Click "Change My Vote" to update your vote.' };
     }
   }
 
@@ -51,10 +61,7 @@ function canVote(pollId, deviceFingerprint, ipAddress, isChangingVote = false) {
   const maxActions = isChangingVote ? 10 : 5;
   
   if (recentVotes.count >= maxActions) {
-    return { 
-      allowed: false, 
-      reason: 'Too many vote actions from your network. Please try again later' 
-    };
+    return { allowed: false, reason: 'Too many vote actions from your network. Please try again later' };
   }
 
   return { allowed: true };
@@ -106,6 +113,7 @@ app.post('/api/polls', (req, res) => {
 app.get('/api/polls/:pollId', (req, res) => {
   try {
     const { pollId } = req.params;
+    const voterId = getVoterID(req, res);
 
     const poll = statements.getPoll.get(pollId);
     if (!poll) {
@@ -114,6 +122,11 @@ app.get('/api/polls/:pollId', (req, res) => {
 
     const options = statements.getOptions.all(pollId);
     
+    // Check if voter has voted
+    const voterVotes = statements.getVoterVotes.all(pollId, voterId);
+    const hasVoted = voterVotes.length > 0;
+    const votedOptionIds = voterVotes.map(v => v.option_id);
+
     // Get statistics
     const stats = statements.getPollStats.get(pollId);
 
@@ -126,8 +139,10 @@ app.get('/api/polls/:pollId', (req, res) => {
         createdAt: poll.created_at
       },
       options,
+      hasVoted,
+      votedOptionIds,
       stats: {
-        uniqueDevices: stats?.unique_devices || 0,
+        uniqueVoters: stats?.unique_voters || 0,
         totalVotes: stats?.total_votes || 0
       }
     });
@@ -141,13 +156,9 @@ app.get('/api/polls/:pollId', (req, res) => {
 app.post('/api/polls/:pollId/vote', (req, res) => {
   try {
     const { pollId } = req.params;
-    const { optionId, optionIds, deviceFingerprint } = req.body;
+    const { optionId, optionIds } = req.body;
+    const voterId = getVoterID(req, res);
     const ipAddress = getClientIP(req);
-    const userAgent = req.headers['user-agent'] || '';
-
-    if (!deviceFingerprint) {
-      return res.status(400).json({ error: 'Device fingerprint required' });
-    }
 
     // Validate poll exists
     const poll = statements.getPoll.get(pollId);
@@ -155,12 +166,12 @@ app.post('/api/polls/:pollId/vote', (req, res) => {
       return res.status(404).json({ error: 'Poll not found' });
     }
 
-    // Check if device has already voted
-    const existingVotes = statements.getDeviceVotes.all(pollId, deviceFingerprint);
+    // Check if voter has already voted
+    const existingVotes = statements.getVoterVotes.all(pollId, voterId);
     const isChangingVote = existingVotes.length > 0;
 
     // Check anti-abuse rules
-    const voteCheck = canVote(pollId, deviceFingerprint, ipAddress, isChangingVote);
+    const voteCheck = canVote(pollId, voterId, ipAddress, isChangingVote);
     if (!voteCheck.allowed) {
       return res.status(403).json({ error: voteCheck.reason });
     }
@@ -172,7 +183,7 @@ app.post('/api/polls/:pollId/vote', (req, res) => {
         statements.decrementVoteCount.run(vote.option_id);
       });
       // Remove old vote records
-      statements.removeDeviceVotes.run(pollId, deviceFingerprint);
+      statements.removeVoterVotes.run(pollId, voterId);
     }
 
     const timestamp = Date.now();
@@ -181,7 +192,7 @@ app.post('/api/polls/:pollId/vote', (req, res) => {
     const idsToVote = poll.allow_multiple && optionIds ? optionIds : [optionId];
 
     for (const id of idsToVote) {
-      statements.recordVote.run(pollId, id, deviceFingerprint, ipAddress, userAgent, timestamp);
+      statements.recordVote.run(pollId, id, voterId, ipAddress, timestamp);
       statements.incrementVoteCount.run(id);
     }
 
@@ -193,7 +204,7 @@ app.post('/api/polls/:pollId/vote', (req, res) => {
     io.to(`poll-${pollId}`).emit('vote-update', { 
       options,
       stats: {
-        uniqueDevices: stats.unique_devices,
+        uniqueVoters: stats.unique_voters,
         totalVotes: stats.total_votes
       }
     });
@@ -298,8 +309,6 @@ io.on('connection', (socket) => {
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`✓ Server running on port ${PORT}`);
-  console.log(`✓ Visit http://localhost:${PORT} to create a poll`);
-  console.log(`✓ Device fingerprinting: ENABLED`);
-  console.log(`✓ One vote per device: ENFORCED`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Visit http://localhost:${PORT} to create a poll`);
 });
