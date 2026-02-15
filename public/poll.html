@@ -558,7 +558,6 @@
                 <div class="options-container" id="optionsContainer"></div>
 
                 <button class="vote-button" id="voteButton" style="display: none;" onclick="submitVote()">Submit Vote</button>
-                <button class="change-vote-button" id="changeVoteButton" style="display: none;" onclick="changeVote()">Change My Vote</button>
 
                 <div class="add-option-section" id="addOptionSection">
                     <h3 style="margin-bottom: 1rem; color: var(--accent);">Add New Option</h3>
@@ -619,11 +618,6 @@
                 
                 document.getElementById('loadingState').style.display = 'none';
                 document.getElementById('pollContent').style.display = 'block';
-
-                if (hasVoted && !isChangingVote) {
-                    showMessage('You voted! Click "Change My Vote" to vote again.', 'success');
-                    document.getElementById('changeVoteButton').style.display = 'block';
-                }
             } catch (error) {
                 console.error('Error loading poll:', error);
                 showError('Failed to load poll');
@@ -643,14 +637,14 @@
                 const wasVotedFor = votedOptionIds.includes(option.id);
                 
                 return `
-                    <div class="option ${(hasVoted && !isChangingVote) ? 'voted' : ''} ${isLeading ? 'leading' : ''} ${isSelected ? 'selected' : ''}" 
+                    <div class="option ${isLeading ? 'leading' : ''} ${isSelected ? 'selected' : ''}" 
                          data-option-id="${option.id}"
-                         onclick="${(hasVoted && !isChangingVote) ? '' : (isMultiple ? `toggleOption(${option.id})` : `selectSingleOption(${option.id})`)}">
+                         onclick="${isMultiple ? `toggleOption(${option.id})` : `toggleSingleOption(${option.id})`}">
                         <div class="option-bar" style="width: ${percentage}%"></div>
                         <div class="option-content">
                             <div class="option-left">
-                                ${(!hasVoted || isChangingVote) && isMultiple ? `<div class="option-checkbox"></div>` : ''}
-                                ${wasVotedFor && !isChangingVote ? `<span class="voted-indicator">Your vote</span>` : ''}
+                                ${isMultiple ? `<div class="option-checkbox"></div>` : ''}
+                                ${wasVotedFor ? `<span class="voted-indicator">Your vote</span>` : ''}
                                 <span class="option-text">${option.option_text}</span>
                             </div>
                             <div class="option-stats">
@@ -671,8 +665,8 @@
                 Total Votes: <strong>${totalVotes}</strong>
             `;
 
-            // Show vote button for multiple choice if not voted or changing vote
-            if ((!hasVoted || isChangingVote) && isMultiple) {
+            // Show submit button for multiple choice if options are selected
+            if (isMultiple && selectedOptions.size > 0) {
                 document.getElementById('voteButton').style.display = 'block';
             } else {
                 document.getElementById('voteButton').style.display = 'none';
@@ -680,24 +674,79 @@
         }
 
         function toggleOption(optionId) {
-            if (hasVoted) return;
-            
             if (selectedOptions.has(optionId)) {
                 selectedOptions.delete(optionId);
             } else {
                 selectedOptions.add(optionId);
             }
-            
             renderOptions(pollData.options);
         }
 
-        function selectSingleOption(optionId) {
-            if (hasVoted) return;
-            vote(optionId);
+        async function toggleSingleOption(optionId) {
+            // Check if clicking the same option that was voted for
+            if (votedOptionIds.includes(optionId)) {
+                // Unvote - remove the vote
+                try {
+                    const response = await fetch(`/api/polls/${pollId}/unvote`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+
+                    hasVoted = false;
+                    votedOptionIds = [];
+                    pollData.options = data.options;
+                    renderOptions(data.options);
+                    document.getElementById('changeVoteButton').style.display = 'none';
+                    showMessage('Vote removed', 'success');
+                } catch (error) {
+                    console.error('Error removing vote:', error);
+                    showError('Failed to remove vote');
+                }
+            } else {
+                // Vote or change vote
+                try {
+                    const response = await fetch(`/api/polls/${pollId}/vote`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ optionId })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+
+                    hasVoted = true;
+                    votedOptionIds = [optionId];
+                    pollData.options = data.options;
+                    renderOptions(data.options);
+                    document.getElementById('changeVoteButton').style.display = 'none';
+                    showMessage(data.message || 'Vote recorded!', 'success');
+                } catch (error) {
+                    console.error('Error voting:', error);
+                    showError('Failed to submit vote');
+                }
+            }
         }
 
         async function submitVote() {
-            if ((hasVoted && !isChangingVote) || selectedOptions.size === 0) return;
+            if (selectedOptions.size === 0) {
+                showError('Please select at least one option');
+                return;
+            }
 
             try {
                 const votedIds = Array.from(selectedOptions);
@@ -718,59 +767,17 @@
                 }
 
                 hasVoted = true;
-                isChangingVote = false;
-                votedOptionIds = votedIds; // Save what user voted for
+                votedOptionIds = votedIds;
                 selectedOptions.clear();
                 pollData.options = data.options;
                 renderOptions(data.options);
                 document.getElementById('voteButton').style.display = 'none';
-                document.getElementById('changeVoteButton').style.display = 'block';
-                showMessage(data.message || 'Vote recorded! Results will update in real-time.', 'success');
+                document.getElementById('changeVoteButton').style.display = 'none';
+                showMessage(data.message || 'Vote recorded!', 'success');
             } catch (error) {
                 console.error('Error voting:', error);
-                showError('Failed to submit vote. Please try again.');
+                showError('Failed to submit vote');
             }
-        }
-
-        async function vote(optionId) {
-            if (hasVoted && !isChangingVote) return;
-
-            try {
-                const response = await fetch(`/api/polls/${pollId}/vote`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ optionId })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    showError(data.error);
-                    return;
-                }
-
-                hasVoted = true;
-                isChangingVote = false;
-                votedOptionIds = [optionId]; // Save what user voted for
-                pollData.options = data.options;
-                renderOptions(data.options);
-                document.getElementById('changeVoteButton').style.display = 'block';
-                showMessage(data.message || 'Vote recorded! Results will update in real-time.', 'success');
-            } catch (error) {
-                console.error('Error voting:', error);
-                showError('Failed to submit vote. Please try again.');
-            }
-        }
-
-        function changeVote() {
-            isChangingVote = true;
-            selectedOptions.clear();
-            document.getElementById('changeVoteButton').style.display = 'none';
-            document.getElementById('messageContainer').innerHTML = '';
-            renderOptions(pollData.options);
-            showMessage('Select your new vote', 'success');
         }
 
         function toggleEditMode() {

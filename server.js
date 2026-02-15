@@ -226,6 +226,57 @@ app.post('/api/polls/:pollId/vote', (req, res) => {
   }
 });
 
+// Remove vote (unvote)
+app.post('/api/polls/:pollId/unvote', (req, res) => {
+  try {
+    const { pollId } = req.params;
+    const voterId = getVoterID(req, res);
+
+    // Validate poll exists
+    const poll = statements.getPoll.get(pollId);
+    if (!poll) {
+      return res.status(404).json({ error: 'Poll not found' });
+    }
+
+    // Get existing votes
+    const existingVotes = statements.getVoterVotes.all(pollId, voterId);
+    
+    if (existingVotes.length === 0) {
+      return res.status(400).json({ error: 'You have not voted yet' });
+    }
+
+    // Decrement counts for all votes
+    existingVotes.forEach(vote => {
+      statements.decrementVoteCount.run(vote.option_id);
+    });
+    
+    // Remove vote records
+    statements.removeVoterVotes.run(pollId, voterId);
+
+    // Get updated results
+    const options = statements.getOptions.all(pollId);
+    const stats = statements.getPollStats.get(pollId);
+
+    // Emit real-time update
+    io.to(`poll-${pollId}`).emit('vote-update', { 
+      options,
+      stats: {
+        uniqueVoters: stats.unique_voters,
+        totalVotes: stats.total_votes
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      options,
+      message: 'Vote removed successfully'
+    });
+  } catch (error) {
+    console.error('Error removing vote:', error);
+    res.status(500).json({ error: 'Failed to remove vote' });
+  }
+});
+
 // Add new option to existing poll (creator only)
 app.post('/api/polls/:pollId/options', (req, res) => {
   try {
