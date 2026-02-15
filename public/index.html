@@ -34,7 +34,6 @@
             overflow-x: hidden;
         }
 
-        /* Animated background effect */
         body::before {
             content: '';
             position: fixed;
@@ -133,6 +132,15 @@
             color: var(--accent);
         }
 
+        .label-hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            margin-top: 0.25rem;
+        }
+
         input[type="text"],
         textarea {
             width: 100%;
@@ -156,6 +164,53 @@
         textarea {
             resize: vertical;
             min-height: 100px;
+        }
+
+        .poll-type-selector {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .poll-type-option {
+            flex: 1;
+            padding: 1.25rem;
+            background: var(--secondary);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .poll-type-option:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .poll-type-option.active {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .poll-type-option input[type="radio"] {
+            display: none;
+        }
+
+        .poll-type-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .poll-type-option.active .poll-type-title {
+            color: var(--accent);
+        }
+
+        .poll-type-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
         }
 
         .options-list {
@@ -183,6 +238,20 @@
 
         .option-item input {
             flex: 1;
+        }
+
+        .option-number {
+            width: 32px;
+            height: 32px;
+            background: var(--secondary);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-muted);
         }
 
         .btn {
@@ -230,12 +299,24 @@
             padding: 0.5rem 1rem;
             font-size: 1.25rem;
             border: 2px solid rgba(255, 255, 255, 0.1);
+            min-width: 44px;
         }
 
         .btn-remove:hover {
             background: rgba(233, 69, 96, 0.1);
             color: var(--accent);
             border-color: var(--accent);
+        }
+
+        .btn-remove:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-remove:disabled:hover {
+            background: transparent;
+            color: var(--text-muted);
+            border-color: rgba(255, 255, 255, 0.1);
         }
 
         .btn-add {
@@ -314,6 +395,10 @@
                 padding: 1.5rem;
             }
 
+            .poll-type-selector {
+                flex-direction: column;
+            }
+
             .button-group {
                 flex-direction: column;
             }
@@ -335,15 +420,39 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Options</label>
+                    <label>
+                        Poll Type
+                        <span class="label-hint">Choose how people can vote</span>
+                    </label>
+                    <div class="poll-type-selector">
+                        <label class="poll-type-option active">
+                            <input type="radio" name="pollType" value="single" checked>
+                            <div class="poll-type-title">Single Choice</div>
+                            <div class="poll-type-desc">Users can select only one option</div>
+                        </label>
+                        <label class="poll-type-option">
+                            <input type="radio" name="pollType" value="multiple">
+                            <div class="poll-type-title">Multiple Choice</div>
+                            <div class="poll-type-desc">Users can select multiple options</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Options
+                        <span class="label-hint">Add at least 2 options (click × to remove)</span>
+                    </label>
                     <div class="options-list" id="optionsList">
-                        <div class="option-item">
+                        <div class="option-item" data-option-index="0">
+                            <span class="option-number">1</span>
                             <input type="text" class="option-input" placeholder="Option 1" required>
-                            <button type="button" class="btn btn-remove" onclick="removeOption(this)">×</button>
+                            <button type="button" class="btn btn-remove" onclick="removeOption(this)" disabled>×</button>
                         </div>
-                        <div class="option-item">
+                        <div class="option-item" data-option-index="1">
+                            <span class="option-number">2</span>
                             <input type="text" class="option-input" placeholder="Option 2" required>
-                            <button type="button" class="btn btn-remove" onclick="removeOption(this)">×</button>
+                            <button type="button" class="btn btn-remove" onclick="removeOption(this)" disabled>×</button>
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary btn-add" onclick="addOption()">+ Add Option</button>
@@ -368,23 +477,62 @@
 
     <script>
         let pollUrl = '';
+        let optionCounter = 2;
+
+        // Handle poll type selection
+        document.querySelectorAll('.poll-type-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.poll-type-option').forEach(o => o.classList.remove('active'));
+                this.classList.add('active');
+                this.querySelector('input[type="radio"]').checked = true;
+            });
+        });
+
+        function updateOptionNumbers() {
+            const options = document.querySelectorAll('.option-item');
+            options.forEach((item, index) => {
+                const numberSpan = item.querySelector('.option-number');
+                if (numberSpan) {
+                    numberSpan.textContent = index + 1;
+                }
+                const input = item.querySelector('.option-input');
+                if (input) {
+                    input.placeholder = `Option ${index + 1}`;
+                }
+            });
+            updateRemoveButtons();
+        }
+
+        function updateRemoveButtons() {
+            const optionsList = document.getElementById('optionsList');
+            const removeButtons = optionsList.querySelectorAll('.btn-remove');
+            const optionCount = optionsList.children.length;
+            
+            removeButtons.forEach(button => {
+                button.disabled = optionCount <= 2;
+            });
+        }
 
         function addOption() {
             const optionsList = document.getElementById('optionsList');
-            const optionCount = optionsList.children.length + 1;
+            optionCounter++;
             const optionItem = document.createElement('div');
             optionItem.className = 'option-item';
+            optionItem.setAttribute('data-option-index', optionCounter);
             optionItem.innerHTML = `
-                <input type="text" class="option-input" placeholder="Option ${optionCount}" required>
+                <span class="option-number">${optionsList.children.length + 1}</span>
+                <input type="text" class="option-input" placeholder="Option ${optionsList.children.length + 1}" required>
                 <button type="button" class="btn btn-remove" onclick="removeOption(this)">×</button>
             `;
             optionsList.appendChild(optionItem);
+            updateRemoveButtons();
         }
 
         function removeOption(button) {
             const optionsList = document.getElementById('optionsList');
             if (optionsList.children.length > 2) {
-                button.parentElement.remove();
+                button.closest('.option-item').remove();
+                updateOptionNumbers();
             } else {
                 showError('You must have at least 2 options');
             }
@@ -414,6 +562,7 @@
             e.preventDefault();
 
             const question = document.getElementById('question').value;
+            const pollType = document.querySelector('input[name="pollType"]:checked').value;
             const optionInputs = document.querySelectorAll('.option-input');
             const options = Array.from(optionInputs)
                 .map(input => input.value.trim())
@@ -430,7 +579,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ question, options })
+                    body: JSON.stringify({ question, options, pollType })
                 });
 
                 const data = await response.json();
