@@ -1,70 +1,46 @@
-# 🎯 PollRooms - Real-Time Polling with Authentication
+# 🎯 PollRooms - Real-Time Polling with Device Fingerprinting
 
-A professional, production-ready polling application with user authentication, device fingerprinting, and real-time updates.
+Production-ready polling application with device-based voting enforcement.
 
 ## ✨ Features
 
-- **Secure Authentication**: Email/password + Google OAuth
-- **Device Fingerprinting**: One vote per email AND one vote per device
-- **Real-Time Updates**: Socket.io for instant result synchronization
-- **Poll Management**: Create, edit, and share polls
-- **Vote Changing**: Users can update their votes
-- **Multiple Poll Types**: Single-choice and multiple-choice
-- **User Dashboard**: Track all your polls and statistics
-- **Modern UI**: Beautiful dark theme with smooth animations
-- **Mobile Responsive**: Works perfectly on all devices
+- ✅ One vote per device (enforced)
+- ✅ Real-time results with Socket.io
+- ✅ Single & multiple choice polls
+- ✅ Vote changing allowed
+- ✅ Edit polls after creation
+- ✅ Device fingerprinting
+- ✅ IP rate limiting
+- ✅ Beautiful modern UI
+- ✅ Mobile responsive
 
 ## 🚀 Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Set up environment
-cp .env.example .env
-# Edit .env and add SESSION_SECRET
-
-# Start server
 npm start
-
-# Visit http://localhost:3000/login
 ```
 
-## 📖 Full Documentation
-
-See **COMPLETE_SETUP.md** for detailed instructions.
+Visit: http://localhost:3000
 
 ## 🔒 Security
 
-- Triple-layer vote protection (email + device + IP)
-- Bcrypt password hashing
-- Secure session management
-- Device fingerprinting
-- Rate limiting
+**Device Fingerprinting:**
+- Canvas fingerprinting
+- WebGL detection
+- Screen resolution
+- Timezone & language
+- 20+ unique data points
 
-## 🌐 Deployment
+**One Device = One Vote**
+- Tracked in database
+- Cannot vote from same device twice
+- Can change vote from same device
 
-Ready to deploy to:
-- Render.com (recommended)
-- Railway.app
-- Heroku
-- Any Node.js hosting
+## 🌐 Deploy
 
-See COMPLETE_SETUP.md for deployment guides.
-
-## 📊 Tech Stack
-
-- **Backend**: Node.js, Express, Passport.js
-- **Database**: SQLite (better-sqlite3)
-- **Real-time**: Socket.io
-- **Authentication**: Local + Google OAuth
-- **Frontend**: Vanilla JS, HTML5, CSS3
-- **Security**: bcrypt, device fingerprinting
+Ready for Render, Railway, Heroku, or any Node.js hosting.
 
 ## 📝 License
 
-MIT License
-
-## 🙏 Acknowledgments
-
-Built for itsmyscreen hiring assignment.
+MIT

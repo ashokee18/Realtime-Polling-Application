@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PollRooms - Real-time Polling</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>PollRooms - Create Poll</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -19,13 +17,7 @@
             --background: #0f0f1e;
             --card-bg: #1e1e3f;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Work Sans', sans-serif;
             background: linear-gradient(135deg, var(--background) 0%, var(--primary) 100%);
@@ -33,7 +25,6 @@
             min-height: 100vh;
             overflow-x: hidden;
         }
-
         body::before {
             content: '';
             position: fixed;
@@ -47,12 +38,10 @@
             z-index: 0;
             pointer-events: none;
         }
-
         @keyframes moveBackground {
             0% { transform: translate(0, 0); }
             100% { transform: translate(50px, 50px); }
         }
-
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -60,24 +49,15 @@
             position: relative;
             z-index: 1;
         }
-
         header {
             text-align: center;
             margin-bottom: 4rem;
             animation: fadeInDown 0.8s ease-out;
         }
-
         @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
         h1 {
             font-family: 'Playfair Display', serif;
             font-size: 4rem;
@@ -90,13 +70,11 @@
             letter-spacing: -2px;
             line-height: 1.1;
         }
-
         .subtitle {
             font-size: 1.25rem;
             color: var(--text-muted);
             font-weight: 400;
         }
-
         .card {
             background: var(--card-bg);
             border-radius: 20px;
@@ -106,22 +84,13 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             animation: fadeInUp 0.8s ease-out 0.2s both;
         }
-
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
         .form-group {
             margin-bottom: 2rem;
         }
-
         label {
             display: block;
             margin-bottom: 0.75rem;
@@ -131,7 +100,6 @@
             letter-spacing: 1px;
             color: var(--accent);
         }
-
         .label-hint {
             font-size: 0.85rem;
             color: var(--text-muted);
@@ -140,9 +108,7 @@
             letter-spacing: 0;
             margin-top: 0.25rem;
         }
-
-        input[type="text"],
-        textarea {
+        input[type="text"] {
             width: 100%;
             padding: 1rem 1.25rem;
             background: var(--secondary);
@@ -153,25 +119,16 @@
             font-family: 'Work Sans', sans-serif;
             transition: all 0.3s ease;
         }
-
-        input[type="text"]:focus,
-        textarea:focus {
+        input[type="text"]:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 4px rgba(233, 69, 96, 0.1);
         }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
         .poll-type-selector {
             display: flex;
             gap: 1rem;
             margin-top: 1rem;
         }
-
         .poll-type-option {
             flex: 1;
             padding: 1.25rem;
@@ -182,41 +139,33 @@
             transition: all 0.3s ease;
             text-align: center;
         }
-
         .poll-type-option:hover {
             border-color: var(--accent);
             transform: translateY(-2px);
         }
-
         .poll-type-option.active {
             border-color: var(--accent);
             background: rgba(233, 69, 96, 0.1);
         }
-
         .poll-type-option input[type="radio"] {
             display: none;
         }
-
         .poll-type-title {
             font-weight: 600;
             font-size: 1.1rem;
             margin-bottom: 0.5rem;
             color: var(--text);
         }
-
         .poll-type-option.active .poll-type-title {
             color: var(--accent);
         }
-
         .poll-type-desc {
             font-size: 0.85rem;
             color: var(--text-muted);
         }
-
         .options-list {
             margin-top: 1rem;
         }
-
         .option-item {
             display: flex;
             gap: 0.75rem;
@@ -224,22 +173,13 @@
             align-items: center;
             animation: slideInRight 0.4s ease-out;
         }
-
         @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
-
         .option-item input {
             flex: 1;
         }
-
         .option-number {
             width: 32px;
             height: 32px;
@@ -253,7 +193,6 @@
             font-size: 0.9rem;
             color: var(--text-muted);
         }
-
         .btn {
             padding: 0.875rem 2rem;
             border: none;
@@ -266,33 +205,24 @@
             letter-spacing: 1px;
             font-family: 'Work Sans', sans-serif;
         }
-
         .btn-primary {
             background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
             color: white;
             box-shadow: 0 8px 24px rgba(233, 69, 96, 0.3);
         }
-
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 32px rgba(233, 69, 96, 0.4);
         }
-
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
         .btn-secondary {
             background: var(--secondary);
             color: var(--text);
             border: 2px solid rgba(255, 255, 255, 0.1);
         }
-
         .btn-secondary:hover {
             background: var(--primary);
             border-color: var(--accent);
         }
-
         .btn-remove {
             background: transparent;
             color: var(--text-muted);
@@ -301,36 +231,25 @@
             border: 2px solid rgba(255, 255, 255, 0.1);
             min-width: 44px;
         }
-
         .btn-remove:hover {
             background: rgba(233, 69, 96, 0.1);
             color: var(--accent);
             border-color: var(--accent);
         }
-
         .btn-remove:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-
-        .btn-remove:disabled:hover {
-            background: transparent;
-            color: var(--text-muted);
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-
         .btn-add {
             width: 100%;
             margin-top: 0.75rem;
         }
-
         .btn-create {
             width: 100%;
             margin-top: 2rem;
             padding: 1.25rem 2rem;
             font-size: 1.1rem;
         }
-
         .success-message {
             display: none;
             background: linear-gradient(135deg, rgba(6, 214, 160, 0.2) 0%, rgba(6, 214, 160, 0.1) 100%);
@@ -340,17 +259,14 @@
             margin-top: 2rem;
             animation: fadeInUp 0.5s ease-out;
         }
-
         .success-message.show {
             display: block;
         }
-
         .success-message h3 {
             color: var(--success);
             margin-bottom: 1rem;
             font-size: 1.5rem;
         }
-
         .share-link {
             background: var(--secondary);
             padding: 1rem;
@@ -361,17 +277,14 @@
             font-size: 0.95rem;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
         .button-group {
             display: flex;
             gap: 1rem;
             margin-top: 1rem;
         }
-
         .button-group .btn {
             flex: 1;
         }
-
         .error-message {
             background: rgba(233, 69, 96, 0.1);
             border: 2px solid var(--accent);
@@ -381,27 +294,14 @@
             color: var(--accent-light);
             display: none;
         }
-
         .error-message.show {
             display: block;
         }
-
         @media (max-width: 768px) {
-            h1 {
-                font-size: 2.5rem;
-            }
-
-            .card {
-                padding: 1.5rem;
-            }
-
-            .poll-type-selector {
-                flex-direction: column;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
+            h1 { font-size: 2.5rem; }
+            .card { padding: 1.5rem; }
+            .poll-type-selector { flex-direction: column; }
+            .button-group { flex-direction: column; }
         }
     </style>
 </head>
@@ -444,12 +344,12 @@
                         <span class="label-hint">Add at least 2 options (click × to remove)</span>
                     </label>
                     <div class="options-list" id="optionsList">
-                        <div class="option-item" data-option-index="0">
+                        <div class="option-item">
                             <span class="option-number">1</span>
                             <input type="text" class="option-input" placeholder="Option 1" required>
                             <button type="button" class="btn btn-remove" onclick="removeOption(this)" disabled>×</button>
                         </div>
-                        <div class="option-item" data-option-index="1">
+                        <div class="option-item">
                             <span class="option-number">2</span>
                             <input type="text" class="option-input" placeholder="Option 2" required>
                             <button type="button" class="btn btn-remove" onclick="removeOption(this)" disabled>×</button>
@@ -477,9 +377,7 @@
 
     <script>
         let pollUrl = '';
-        let optionCounter = 2;
 
-        // Handle poll type selection
         document.querySelectorAll('.poll-type-option').forEach(option => {
             option.addEventListener('click', function() {
                 document.querySelectorAll('.poll-type-option').forEach(o => o.classList.remove('active'));
@@ -491,34 +389,23 @@
         function updateOptionNumbers() {
             const options = document.querySelectorAll('.option-item');
             options.forEach((item, index) => {
-                const numberSpan = item.querySelector('.option-number');
-                if (numberSpan) {
-                    numberSpan.textContent = index + 1;
-                }
-                const input = item.querySelector('.option-input');
-                if (input) {
-                    input.placeholder = `Option ${index + 1}`;
-                }
+                item.querySelector('.option-number').textContent = index + 1;
+                item.querySelector('.option-input').placeholder = `Option ${index + 1}`;
             });
             updateRemoveButtons();
         }
 
         function updateRemoveButtons() {
-            const optionsList = document.getElementById('optionsList');
-            const removeButtons = optionsList.querySelectorAll('.btn-remove');
-            const optionCount = optionsList.children.length;
-            
+            const removeButtons = document.querySelectorAll('.btn-remove');
             removeButtons.forEach(button => {
-                button.disabled = optionCount <= 2;
+                button.disabled = document.querySelectorAll('.option-item').length <= 2;
             });
         }
 
         function addOption() {
             const optionsList = document.getElementById('optionsList');
-            optionCounter++;
             const optionItem = document.createElement('div');
             optionItem.className = 'option-item';
-            optionItem.setAttribute('data-option-index', optionCounter);
             optionItem.innerHTML = `
                 <span class="option-number">${optionsList.children.length + 1}</span>
                 <input type="text" class="option-input" placeholder="Option ${optionsList.children.length + 1}" required>
