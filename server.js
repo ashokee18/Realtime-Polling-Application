@@ -83,13 +83,15 @@ app.post('/api/polls', (req, res) => {
     const pollId = uuidv4();
     const timestamp = Date.now();
     const allowMultiple = pollType === 'multiple' ? 1 : 0;
+    const creatorId = getVoterID(req, res); // Use voter ID as creator ID
 
     // Create poll
     statements.createPoll.run(
       pollId, 
       question, 
       pollType || 'single', 
-      allowMultiple, 
+      allowMultiple,
+      creatorId,
       timestamp
     );
 
@@ -126,6 +128,9 @@ app.get('/api/polls/:pollId', (req, res) => {
     const voterVotes = statements.getVoterVotes.all(pollId, voterId);
     const hasVoted = voterVotes.length > 0;
     const votedOptionIds = voterVotes.map(v => v.option_id);
+    
+    // Check if current user is the creator
+    const isCreator = poll.creator_id === voterId;
 
     // Get statistics
     const stats = statements.getPollStats.get(pollId);
@@ -141,6 +146,7 @@ app.get('/api/polls/:pollId', (req, res) => {
       options,
       hasVoted,
       votedOptionIds,
+      isCreator, // NEW: Tell client if they created this poll
       stats: {
         uniqueVoters: stats?.unique_voters || 0,
         totalVotes: stats?.total_votes || 0
@@ -220,11 +226,12 @@ app.post('/api/polls/:pollId/vote', (req, res) => {
   }
 });
 
-// Add new option to existing poll
+// Add new option to existing poll (creator only)
 app.post('/api/polls/:pollId/options', (req, res) => {
   try {
     const { pollId } = req.params;
     const { optionText } = req.body;
+    const voterId = getVoterID(req, res);
 
     if (!optionText || optionText.trim() === '') {
       return res.status(400).json({ error: 'Option text is required' });
@@ -233,6 +240,11 @@ app.post('/api/polls/:pollId/options', (req, res) => {
     const poll = statements.getPoll.get(pollId);
     if (!poll) {
       return res.status(404).json({ error: 'Poll not found' });
+    }
+
+    // Check if current user is the creator
+    if (poll.creator_id !== voterId) {
+      return res.status(403).json({ error: 'Only the poll creator can add options' });
     }
 
     statements.createOption.run(pollId, optionText.trim());
@@ -248,14 +260,20 @@ app.post('/api/polls/:pollId/options', (req, res) => {
   }
 });
 
-// Delete option from poll
+// Delete option from poll (creator only)
 app.delete('/api/polls/:pollId/options/:optionId', (req, res) => {
   try {
     const { pollId, optionId } = req.params;
+    const voterId = getVoterID(req, res);
 
     const poll = statements.getPoll.get(pollId);
     if (!poll) {
       return res.status(404).json({ error: 'Poll not found' });
+    }
+
+    // Check if current user is the creator
+    if (poll.creator_id !== voterId) {
+      return res.status(403).json({ error: 'Only the poll creator can delete options' });
     }
 
     statements.deleteOption.run(optionId);

@@ -11,6 +11,7 @@ db.exec(`
     question TEXT NOT NULL,
     poll_type TEXT DEFAULT 'single',
     allow_multiple INTEGER DEFAULT 0,
+    creator_id TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
 
@@ -42,8 +43,8 @@ db.exec(`
 const statements = {
   // Poll operations
   createPoll: db.prepare(`
-    INSERT INTO polls (id, question, poll_type, allow_multiple, created_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO polls (id, question, poll_type, allow_multiple, creator_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
   `),
   
   getPoll: db.prepare('SELECT * FROM polls WHERE id = ?'),

@@ -583,6 +583,7 @@
         let selectedOptions = new Set();
         let votedOptionIds = [];
         let isChangingVote = false;
+        let isCreator = false; // Track if current user created this poll
 
         // Load poll data
         async function loadPoll() {
@@ -598,12 +599,21 @@
                 pollData = data;
                 hasVoted = data.hasVoted;
                 votedOptionIds = data.votedOptionIds || [];
+                isCreator = data.isCreator || false; // Get creator status
                 
                 document.getElementById('pollQuestion').textContent = data.poll.question;
                 
                 const pollType = data.poll.poll_type || 'single';
                 const badge = document.getElementById('pollTypeBadge');
                 badge.textContent = pollType === 'multiple' ? 'Multiple Choice' : 'Single Choice';
+                
+                // Show/hide edit button based on creator status
+                const editButton = document.getElementById('editButton');
+                if (isCreator) {
+                    editButton.style.display = 'block';
+                } else {
+                    editButton.style.display = 'none';
+                }
                 
                 renderOptions(data.options);
                 
@@ -648,7 +658,7 @@
                                 <span class="percentage">${percentage}%</span>
                             </div>
                         </div>
-                        ${editMode ? `
+                        ${editMode && isCreator ? `
                             <div class="option-actions">
                                 <button class="delete-option-btn" onclick="event.stopPropagation(); deleteOption(${option.id})">Delete</button>
                             </div>
@@ -690,12 +700,14 @@
             if ((hasVoted && !isChangingVote) || selectedOptions.size === 0) return;
 
             try {
+                const votedIds = Array.from(selectedOptions);
+                
                 const response = await fetch(`/api/polls/${pollId}/vote`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ optionIds: Array.from(selectedOptions) })
+                    body: JSON.stringify({ optionIds: votedIds })
                 });
 
                 const data = await response.json();
@@ -707,9 +719,9 @@
 
                 hasVoted = true;
                 isChangingVote = false;
+                votedOptionIds = votedIds; // Save what user voted for
                 selectedOptions.clear();
                 pollData.options = data.options;
-                votedOptionIds = Array.from(selectedOptions);
                 renderOptions(data.options);
                 document.getElementById('voteButton').style.display = 'none';
                 document.getElementById('changeVoteButton').style.display = 'block';
@@ -741,6 +753,7 @@
 
                 hasVoted = true;
                 isChangingVote = false;
+                votedOptionIds = [optionId]; // Save what user voted for
                 pollData.options = data.options;
                 renderOptions(data.options);
                 document.getElementById('changeVoteButton').style.display = 'block';
@@ -754,7 +767,6 @@
         function changeVote() {
             isChangingVote = true;
             selectedOptions.clear();
-            votedOptionIds = [];
             document.getElementById('changeVoteButton').style.display = 'none';
             document.getElementById('messageContainer').innerHTML = '';
             renderOptions(pollData.options);
@@ -762,6 +774,11 @@
         }
 
         function toggleEditMode() {
+            if (!isCreator) {
+                showError('Only the poll creator can edit options');
+                return;
+            }
+            
             editMode = !editMode;
             const button = document.getElementById('editButton');
             const addSection = document.getElementById('addOptionSection');
